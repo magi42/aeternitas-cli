@@ -38,7 +38,7 @@ def parse_diary_entries(text: str, default_year: Optional[int]) -> List[Dict[str
         body_start = m.end()
         body_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         body = text[body_start:body_end].strip()
-        title = normalize_ws(body.splitlines()[0]) if body else f"Merkintä {cur_date.isoformat()}"
+        title = _choose_title(body, cur_date)
         entries.append({
             "date": cur_date,
             "title": title[:160],
@@ -46,3 +46,29 @@ def parse_diary_entries(text: str, default_year: Optional[int]) -> List[Dict[str
         })
 
     return entries
+
+
+def _choose_title(body: str, date: dt.date) -> str:
+    """
+    Heuristic: use first line as title only if it looks like a heading.
+    Otherwise fall back to date-based title.
+    """
+    if not body:
+        return f"Merkintä {date.isoformat()}"
+    first = normalize_ws(body.splitlines()[0])
+    if _looks_like_heading(first):
+        return first
+    return f"Merkintä {date.isoformat()}"
+
+
+def _looks_like_heading(line: str) -> bool:
+    if not line:
+        return False
+    if len(line) > 80:
+        return False
+    if line.endswith((".", "!", "?", "…")):
+        return False
+    digits = sum(1 for ch in line if ch.isdigit())
+    if digits >= 3:
+        return False
+    return True
