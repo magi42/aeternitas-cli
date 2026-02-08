@@ -6,6 +6,8 @@ Two tools (kept separate):
 - `aet.py` (archive/index): builds SQLite + FTS index, timeline, and keeps revision history.
 - `manifest.py` (manifest): snapshots directory trees, detects missing content and duplicates by hash.
 
+Implementation code lives under `src/aeternitas/`, with `aet.py` as a thin CLI wrapper.
+
 ## Quick start
 
 Indexing (archive/index):
