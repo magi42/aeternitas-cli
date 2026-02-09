@@ -44,3 +44,30 @@ DB path is set to `~/.aeternitas/aeternitas.db`:
 ```
 
 If not set, pass the DB path on the CLI as before.
+
+## AI Config (optional)
+
+For OpenAI API usage, prefer the `OPENAI_API_KEY` environment variable.
+If it is not set, `aet` will look for `~/.aeternitas/ai.json`:
+
+```json
+{
+  "openai_api_key": "..."
+}
+```
+
+Keep this file local-only and protect it with `chmod 600`.
+
+## Narration (OpenAI API)
+
+Create a narrative summary from timeline entries:
+
+```bash
+./aet.py narrate --from 2024-02-01 --to 2024-02-28 --model gpt-4.1-mini
+```
+
+You can write to a file:
+
+```bash
+./aet.py narrate --from 2024-02-01 --to 2024-02-28 --out /tmp/kooste.txt
+```

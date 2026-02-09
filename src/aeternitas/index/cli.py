@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from aeternitas.common.config import resolve_db_path
 from aeternitas.index.db.connection import db_connect
 from aeternitas.index.ingest.ingest import ingest_file
 from aeternitas.index.timeline.build import rebuild_timeline
+from aeternitas.index.narrate import narrate
 
 
 def cmd_ingest(args: argparse.Namespace) -> None:
@@ -48,6 +50,22 @@ def cmd_search(args: argparse.Namespace) -> None:
         print(f"- {r['title']}: {r['snip']}")
 
 
+def cmd_narrate(args: argparse.Namespace) -> None:
+    con = db_connect(resolve_db_path(args.db))
+    narrative, _summaries = narrate(
+        con,
+        date_from=args.date_from,
+        date_to=args.date_to,
+        model=args.model,
+        max_chars=args.max_chars,
+        delay_seconds=args.delay_seconds,
+    )
+    if args.out:
+        Path(args.out).write_text(narrative, encoding="utf-8")
+    else:
+        print(narrative)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -69,13 +87,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_s.add_argument("--limit", type=int, default=20)
     p_s.set_defaults(func=cmd_search)
 
+    p_n = sub.add_parser("narrate", help="Koostaa aikajanan merkinnöistä narratiivin (OpenAI API)")
+    p_n.add_argument("--db", dest="db", default=None, help="SQLite-tiedosto (optionaalinen, muuten config)")
+    p_n.add_argument("--from", dest="date_from", required=True, help="Alkupäivä (YYYY-MM-DD)")
+    p_n.add_argument("--to", dest="date_to", required=True, help="Loppupäivä (YYYY-MM-DD)")
+    p_n.add_argument("--model", default="gpt-4.1-mini", help="OpenAI model (default: gpt-4.1-mini)")
+    p_n.add_argument("--max-chars", type=int, default=6000, help="Maksimi merkit per pyyntö")
+    p_n.add_argument("--delay-seconds", type=float, default=1.0, help="Viive chunkien välissä")
+    p_n.add_argument("--out", help="Kirjoita tulos tiedostoon (UTF-8)")
+    p_n.set_defaults(func=cmd_narrate)
+
     return p
 
 
 def main() -> None:
     p = build_parser()
     args = p.parse_args()
-    args.func(args)
+    try:
+        args.func(args)
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
